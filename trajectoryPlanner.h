@@ -155,7 +155,7 @@ class trajectoryPlanner{
     inline int decPathIndex(int p);
     
     inline bool isBetween(double p , double s , double f) { return (f > s) ? (p > s && p < f) : (p < s && p > f); }
-           
+    
     /* used during execution */
     
     void computeOptimalTrajectory(vector <opponent *> * enemyCars);	/* called by the driver */	
@@ -175,14 +175,12 @@ class trajectoryPlanner{
     bool initGraph();		/* loadGraph , loadLinks , loadManeuvers , graphExpantion ,init */
     void graphExpansion();	/* extend the graph so we can plan more than one lap */
     ListDigraph::Node initNearestNode();	/* find the nearest node */
-    
-    bool isCarInsideArc(arc t);
 
     /*default methods for following the raceline , used if initGrap return false */
     
     void computeDefaultTrajectory(vector <opponent *> * enemyCars);
     double getDefaultSpeed(); 
-    
+
 };
  
     

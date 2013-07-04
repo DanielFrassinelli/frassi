@@ -212,6 +212,8 @@ void Driver::initialUpdate(tSituation* s)
   
   bool stuck = isStuck();
   
+  //TODO add a fucntion that detect if the car is out of the main segment and change maximum acceleration/steer
+  
   if(stuck)
     myCar->setMode(STUCK);
   else  

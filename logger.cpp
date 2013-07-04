@@ -134,7 +134,7 @@ void logger::log(tSituation *s){
 void logger::logCustomData(tSituation *s){
     
   customLogger << car->_pos_X << " \t " << car->_pos_Y << " \t " << car->_speed_x;
-  
+
   double accel;
   
   if(car->_accelCmd == 0.0)
@@ -415,7 +415,7 @@ void logger::logMatlabData(){
   const double maxSpeed = 	myCar->getMaxSpeed();
   
   matlabLogger << "\n-------------------------------------------------------------" << endl;
-  matlabLogger << "Track data : width -> " << width - car->_dimension_y/2.0 << " , mu -> " << mu << endl;
+  matlabLogger << "Track data : width -> " << width - car->_dimension_y - 0.5 << " , mu -> " << mu << endl;
   matlabLogger << "0 -> straight , 1 -> curve "<< endl;  
   matlabLogger << "\n-------------------------------------------------------------" << endl;
   matlabLogger << "Car data " << endl;

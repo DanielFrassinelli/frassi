@@ -106,6 +106,13 @@ void trajectoryPlanner::computeOptimalTrajectory(vector <opponent *> * enemyCars
     computeOptimalPath(findNearestNode());
     recomputePath = false;
     recomputeTime = RECOMPUTE_TIME;
+    
+    //TODO better do nothing?
+    findPosition();
+    distance = traj[manIndex].getDistance(car);
+    angle = traj[manIndex].getAngle(car);
+    allowedSpeed = getOptimalSpeed();
+    
   }
   else
     recomputeTime = MAX(0.0 , recomputeTime - RCM_MAX_DT_ROBOTS);
@@ -569,14 +576,14 @@ bool trajectoryPlanner::initGraph(){
   graphExpansion();
   
   dijkstra.distMap(nodeDist); //set the map that given a node return the distance computed by dijkstra
-      
+    
   computeOptimalPath(initNearestNode());
 
   recomputePath = false;
   recomputeTime = RECOMPUTE_TIME;
 
-  for(pathIt p(path); p != INVALID; ++p)
-  {
+ /* for(pathIt p(path); p != INVALID; ++p)
+  {    
     cout << "------------------------------" << endl;
     cout << "src seg id : " << nodeData[graph.source(p)].seg->id << " dst seg id : " << nodeData[graph.target(p)].seg->id << endl;
     
@@ -587,7 +594,7 @@ bool trajectoryPlanner::initGraph(){
       cout << "man : " << i << " -> startSeg : " << sr->id << " , endSeg : " << ds->id << endl;
     }
  
-  }
+  }*/
   
   
   return true;
@@ -704,7 +711,7 @@ void trajectoryPlanner::computeOptimalPath(node src){
   double dist = FLT_MAX;
   mapFill(graph, nodeDist , 0);
   
-  dijkstra.run(src , fake);	
+  dijkstra.run(src);	
   
   int start = firstIndexOfSector(src);	/* sector of the currenct src node */
   int end   = start + nodePerSector;
@@ -722,13 +729,12 @@ void trajectoryPlanner::computeOptimalPath(node src){
   
   if(nodeDist[fake] > 0.0 && nodeDist[fake] < FLT_MAX && dist > nodeDist[fake])  
     dst = fake;
-
+ 
   if(dst != INVALID)
   {
   path.clear();
   path = dijkstra.path(dst); //path from dst node
-  
-  
+
   if(dst == fake)
   {
   arc last = path.back();		/* fake arc */  
@@ -738,14 +744,13 @@ void trajectoryPlanner::computeOptimalPath(node src){
   for(outArcIt out(graph, parent); out != INVALID; ++out) // find the arc connected with the src node
     if(graph.target(out) == src)
       target = out;
-  
+      
   path.eraseBack();		/* remove the fake arc */
   path.addBack(target);		/* add the corrent arc */
     
   }
   
-  graph.erase(fake);		// erase the fake node
-  
+  graph.erase(fake);		// erase the fake node  
   pathIndex = 0;		 /* now we are on the first arc of the path */
   manIndex = 0;			 /* same for the manuevers */
   traj = arcData[path.front()]; /* maneuvers of the first arc */
@@ -775,79 +780,79 @@ void trajectoryPlanner::checkPath(){
     recomputePath = true;
 }
 
-bool trajectoryPlanner::isCarInsideArc(arc t){
-   
- //TODO base version, duplicate oparations
-  
-    int cid = car->_trkPos.seg->id;
-    int sid = nodeData[graph.source(t)].seg->id;
-    int did = nodeData[graph.target(t)].seg->id;
-    
-  // cout << "test : "  << cid << " did : " << did << " sid : " << sid << endl;
-  
-    if(sid <= did)
-    {
-      if(cid < did && cid > sid)
-	return true;
-    }
-    else 
-      if(cid < did || cid > sid)
-	return true;
-      
-
-    if(cid == sid)
-    {
-      int i = 0; // first maneuver
-      int length = arcData[t].size();
-      maneuver *man;
-      do{
-	man = getManeuver(t,i);    
-	if(man->isInside(car))
-	  return true;
-	  i++;   	    
-	}while(man->getEndSeg()->id <= did && i < length);  
-      return false;   
-    }
-    else
-      if(cid == did)
-      {
-	int i = arcData[t].size() - 1;
-	maneuver *man;
-	do{
-	  man = getManeuver(t,i);    
-	  if(man->isInside(car))
-	    return true;
-	    i--;   	    
-	  }while(man->getEndSeg()->id >= sid && i >= 0); 
-	return false;
-      }
-
-    return false;      
-}
-
 void trajectoryPlanner::findPosition(){
   
-  //TODO improve
-  pathIt z(path);
+  int m = manIndex;
+  int p = pathIndex;
   
-  while(z != INVALID)
-  {
-   if(isCarInsideArc(z))
-    {
-     // cout << "path found : src node " << graph.id(graph.source(z)) << " dest node : " << graph.id(graph.target(z)) << endl; 
-      break;
-    }
-    ++z;
-  }
+  int cid = car->_trkPos.seg->id;
+  
+  bool found = false;
+  
+  do{
+    arc t = path.nth(pathIndex);
 
-  int counter = 0;
+    int sid = nodeData[graph.source(t)].seg->id;
+    int did = nodeData[graph.target(t)].seg->id;
+
+    if(sid <= did)
+    {
+      if(cid <= did && cid >= sid) //if I am inside the arc
+      {
+      int i = 0; // first maneuver
+      int length = arcData[t].size();
+      do{ 
+	  if(arcData[t][i].isInside(car))
+	  {
+	    found = true;
+	    manIndex = i;
+	    break;
+	  }
+	  i++;   	    
+        }while(i < length); 		
+      }
+    }
+    else 
+      if(cid <= did || cid >= sid)	//if I am inside the arc
+      {
+      int i = 0; // first maneuver
+      int length = arcData[t].size();
+      do{ 
+	  if(arcData[t][i].isInside(car))
+	  {
+	    found = true;
+	    manIndex = i;
+	    break;
+	  }
+	  i++;   	    
+        }while(i < length); 
+      }
+      if(!found)
+	pathIndex = incPathIndex(pathIndex);
+  }while(!found && pathIndex != p);
+  
+  //TODO it's possibile to not find maneuver ?
+  
+  if(!found)
+  {
+    pathIndex = p;
+    manIndex  = m;
+  }
+  
+  traj = arcData[path.nth(pathIndex)];
+
+/*
+  
+  traj = arcData[path.nth(pathIndex)];
+
+ int counter = 0;
   int p = pathIndex;
   int m = manIndex;
   
-  while(!traj[manIndex].isInside(car) && counter <= trajLength)	/* while I'm not in the current Maneuver */
+  while(!traj[manIndex].isInside(car) && counter <= trajLength)	// while I'm not in the current Maneuver 
   {	
-      manIndex ++;	/* inc maneuver index */     
-      if((unsigned) manIndex == traj.size()) /* arc increment */
+      manIndex ++;	// inc maneuver index      
+      if((unsigned) manIndex == traj.size()) // arc increment 
       {
 	manIndex = 0;	
 	pathIndex = incPathIndex(pathIndex);
@@ -856,10 +861,10 @@ void trajectoryPlanner::findPosition(){
   }  
   if(counter <= trajLength)
     return;
+  
   pathIndex = p;
   manIndex  = m;  
-  
- 
+   */
 }
 
 inline void trajectoryPlanner::incManeuver(int &p , int &m){
@@ -983,6 +988,7 @@ maneuver::maneuver(v2d start, carData *myCar , double dist , double radius, doub
   }
   
   //TODO beta version
+  
   this->startSeg = startSeg; 
   tTrackSeg *seg = startSeg;
   
@@ -1070,21 +1076,27 @@ inline double maneuver::angleFromStart(tCarElt *car){
 
 bool maneuver::isInside(tCarElt *car){
     
+  //TODO maybe works
+  
   int cid = car->_trkPos.seg->id;
   int sid = startSeg->id;
   int did = endSeg->id;
-    
-  //cout << "test : "  << cid << " did : " << did << " sid : " << sid << endl;
-  
+
   if(sid <= did)
   {
-    if(cid < did && cid > sid)
-      return true;
+    if(cid > did || cid < sid)
+      return false;
+    else if(cid < did && cid > sid)
+      return true;    
   }
-  else 
-    if(cid < did || cid > sid)
+  else
+  { 
+    if(cid > did && cid < sid)
+      return false;
+    else if(cid < did || cid > sid)
       return true;
-      
+  }   
+
   if(type == line)
   {
     v2d carPos(car->_pos_X , car->_pos_Y);
@@ -1092,9 +1104,7 @@ bool maneuver::isInside(tCarElt *car){
     return (sx <= carPos.x) && (carPos.x <= fx);
   } 
   else
-  { 
-    //TODO add radius check
-    //double dist = center.dist(car->_pos_X , car->_pos_Y);    
+  {   
     double theta =  angleFromStart(car); 
     return (theta > 0.0 && theta < arc);
   }
