@@ -36,17 +36,19 @@ class Driver{
 
   private:
     
+    /** check variables */
+    
     static const double STUCK_MAX_ANGLE;
     static const double STUCK_MAX_DIST;
     static const double STUCK_MAX_SPEED;
     static const int    STUCK_MAX_COUNT;
     
+    /** Controller varaibles */
+    
     static const double ACCEL_PI_KI;
     static const double ACCEL_PI_KE;
     static const double ACCEL_INTEG_LIMIT;	// we have to limit the error because sometimes can be infinite
     static const double ACCEL_CONST_LIMIT;	// we have to limit the intergral because grows too much
-    static const double FILTER_ACCEL_START;
-    static const double FILTER_ACCEL_START_MODE_SPEED;
     
     static const double STEER_K_SOFT;
     static const double STEER_K_SPEED;
@@ -59,8 +61,17 @@ class Driver{
     static const double CLUTCH_FULL_MAX_TIME;
     static const double CLUTCH_SPEED;
     
+    /** filter variables */
+    
+    static const double FILTER_ACCEL_START;
+    static const double FILTER_ACCEL_START_MODE_SPEED;
+    static const double RECOVERY_YAW_RATE;
+    static const double RECOVERY_ACCEL_REDUCE;
+    
     static const double ABS_MIN_SPEED;
     static const double ABS_SLIP;
+    
+    static const double RECOVERY_MAX_SPEED;
     
     static const double TCL_SLIP;
     static const double TCL_MINSPEED; 
@@ -88,19 +99,31 @@ class Driver{
     
     past_data last;
     
+    /** checker */
+    
     bool  isStuck();
+    bool  isRecovery();
+    
+    /** controller */
 
     double getAccel();
     double getSteer();      
     int    getGear();  
     double getClutch();
     
+    /** opponent filters */
+    
     double filterAccelOpp(double accel);
     double filterSteerOpp(double steer);
-       
-    double filterABS(double brake);
-    double filterTCL(double accel);   
+    
+    /** performance filters */
+      
     double filterAccel(double accel);
+    double filterSteer(double steer);
+    double filterSpeed(double speed);
+    double filterBrake(double brake);
+    
+    /** update methods */
 
     void  initialUpdate(tSituation *s); 
     void  finalUpdate(tSituation *s);

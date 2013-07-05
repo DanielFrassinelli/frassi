@@ -31,7 +31,7 @@ class carData{
     void updateCar(tSituation *s);
     double getBrake(double brake);
     
-    /* getter */
+    /** getter */
     
     inline double getCW() 			{ return CW; }
     inline double getCA()			{ return CA; }
@@ -53,20 +53,29 @@ class carData{
     inline double getGearUp()			{ return car->_gearRatio[car->_gear + car->_gearOffset]; }
     inline double getGearDown()		{ return car->_gearRatio[car->_gear + car->_gearOffset - 1]; }
     
-    /* setter */
+    inline bool   startMode()			{ return mode == START; }
+    inline bool   recoveryMode()		{ return mode == RECOVERY; }
+    inline bool   normalMode()			{ return mode == NORMAL; }
+    inline bool   stuckMode()			{ return mode == STUCK; }
+    
+    
+    //TODO variables that changes with behaviour, (matrix), that correct maximum speed / acceleration bla bla.
+    
+    /** setter */
   
-    inline void   setMode(int x)  		{ mode = x ; }
+    inline void   setMode(int x)  		{ mode = x; }
+    inline void   setBehaviour(int x)		{ behaviour = x; }
     
   private:
     
     static const double CAR_MAX_DEFAULT_SPEED; /* default max speed */
     
-    int drivetrain , counter , mode;        
+    int drivetrain , counter , mode, behaviour;        
     double lastTime , lastSpeed , CA , CW , CARMASS , speedSqr , mass , maxSpeed , friction;
     double stuckTime, minTurn, maxAccel, maxDecel , speedOpp;
     tCarElt *car; 
          
-    /* init methods */
+    /** init methods */
     
     double initCA();
     double initCW();
@@ -74,7 +83,7 @@ class carData{
     double (carData::*GET_DRIVEN_WHEEL_SPEED)();
     double (carData::*GET_ACCEL_FUNCT)(double speed);
     
-    /* used during execution */
+    /** used during execution */
     
     double filterTCL_RWD();
     double filterTCL_FWD();

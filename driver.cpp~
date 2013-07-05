@@ -215,6 +215,8 @@ void Driver::initialUpdate(tSituation* s){
   trajdist     = trajectory->getTrajectoryDistance();   
   allowedSpeed = filterSpeed(trajectory->getTrajectorySpeed());
 
+  allowedSpeed = 100;
+  
   time_difference = s->deltaTime;
   
   gearTime = MAX(0.0 , gearTime - RCM_MAX_DT_ROBOTS);

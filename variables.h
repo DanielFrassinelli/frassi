@@ -45,7 +45,8 @@
 using namespace lemon; /* graph library */
 using namespace std;
 
-enum {START = 0 , NORMAL = 1, STUCK = 2};	/* car mode */
+enum {START = 0 , NORMAL = 1, STUCK = 2, RECOVERY = 3};	/* car mode */
+enum {SAFE  = 0 , STANDARD = 1, AGGRESSIVE = 2};		/* car behaviour */
 enum {DRWD = 0, DFWD = 1, D4WD = 2 };  	/* car train type */
 enum {line = 0 , curveL = 1 , curveR = 2 };	/* maneuvers type */
 enum {optimalTraj = 0 , defaultTraj = 1};	/* algorithm type */
