@@ -25,12 +25,13 @@ using namespace std;
 class carData{
   
   public:  
-     
-    carData(tCarElt *mycar);
+
+    static const double CAR_MAX_DEFAULT_SPEED; /* default max speed, if not defined in the XML */
+    
+    carData(tCarElt *mycar, tTrack *track);
 
     void updateCar(tSituation *s);
-    double getBrake(double brake);
-    
+
     /** getter */
     
     inline double getCW() 			{ return CW; }
@@ -52,14 +53,13 @@ class carData{
     inline double getStuckTime()		{ return stuckTime; }
     inline double getGearUp()			{ return car->_gearRatio[car->_gear + car->_gearOffset]; }
     inline double getGearDown()		{ return car->_gearRatio[car->_gear + car->_gearOffset - 1]; }
-    
+    inline const char * getBasePath()		{ return basePath; }
     inline bool   startMode()			{ return mode == START; }
     inline bool   recoveryMode()		{ return mode == RECOVERY; }
     inline bool   normalMode()			{ return mode == NORMAL; }
     inline bool   stuckMode()			{ return mode == STUCK; }
-    
-    
-    //TODO variables that changes with behaviour, (matrix), that correct maximum speed / acceleration bla bla.
+  
+    //TODO behaviour, (matrix).
     
     /** setter */
   
@@ -67,12 +67,11 @@ class carData{
     inline void   setBehaviour(int x)		{ behaviour = x; }
     
   private:
-    
-    static const double CAR_MAX_DEFAULT_SPEED; /* default max speed */
-    
-    int drivetrain , counter , mode, behaviour;        
+        
+    int drivetrain, mode, behaviour; /* variables --> enum mode */        
     double lastTime , lastSpeed , CA , CW , CARMASS , speedSqr , mass , maxSpeed , friction;
     double stuckTime, minTurn, maxAccel, maxDecel , speedOpp;
+    char  basePath[255];
     tCarElt *car; 
          
     /** init methods */
@@ -80,6 +79,9 @@ class carData{
     double initCA();
     double initCW();
     void  initTrainType();
+    
+    /* during the initTrainType these two pointers point to the correct functions */
+    
     double (carData::*GET_DRIVEN_WHEEL_SPEED)();
     double (carData::*GET_ACCEL_FUNCT)(double speed);
     

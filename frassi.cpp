@@ -60,11 +60,11 @@ frassi(tModInfo *modInfo)
     int i;
     
     for (i = 0; i < NBOTS; i++) {
-	modInfo[i].name = strdup(botname[i]);	/* name of the module (short) */
-	modInfo[i].desc = strdup(botdesc[i]);	/* description of the module (can be long) */
-        modInfo[i].fctInit = InitFuncPt;  /* init function */
-        modInfo[i].gfId    = ROB_IDENT;	  /* supported framework version */
-        modInfo[i].index   = i;           /* indices from 0 to 9 */
+	modInfo[i].name = strdup(botname[i]);		/* name of the module (short) */
+	modInfo[i].desc = strdup(botdesc[i]);		/* description of the module (can be long) */
+        modInfo[i].fctInit = InitFuncPt;  		/* init function */
+        modInfo[i].gfId    = ROB_IDENT;	  	/* supported framework version */
+        modInfo[i].index   = i;           		/* indices from 0 to 9 */
     }
     
     return 0; 

@@ -19,19 +19,38 @@
 
 const double carData::CAR_MAX_DEFAULT_SPEED = 150.0;
 
-carData::carData(tCarElt *mycar){
+carData::carData(tCarElt *mycar, tTrack *track){
   
   this->car = mycar;
   
   CW = initCW();
   CA = initCA();
   CARMASS =  GfParmGetNum(car->_carHandle, SECT_CAR, PRM_MASS, NULL, 1100);
-  maxSpeed = GfParmGetNum(car->_carHandle, FRASSI_PRIV, SECT_MAXSPEED, (char*)NULL, CAR_MAX_DEFAULT_SPEED);
+  
+  /** custom XML data */
+  
+  maxSpeed = GfParmGetNum(car->_carHandle, FRASSI_PRIV, SECT_MAXSPEED, (char*)NULL, CAR_MAX_DEFAULT_SPEED); 
   maxAccel = GfParmGetNum(car->_carHandle, FRASSI_PRIV, SECT_MAXACCEL, (char*)NULL, -1.0);
   maxDecel = GfParmGetNum(car->_carHandle, FRASSI_PRIV, SECT_MAXDECEL, (char*)NULL, -1.0);
   minTurn  = GfParmGetNum(car->_carHandle, FRASSI_PRIV, SECT_MINTURN , (char*)NULL, -1.0);
   friction  = GfParmGetNum(car->_carHandle, FRASSI_PRIV, SECT_FRICTION, (char*)NULL, 1.0);
-
+  
+  /** creating path $TORCS_BASE/src/drivers/frassi/data */
+  
+  char *tmp;                                                                        
+  tmp = getenv("TORCS_BASE"); // $TORCS_BASE                                                      
+  if (tmp == NULL)
+    cout << "$TORCS_BASE not found !!! " << endl;
+  else
+  {
+    strcpy(basePath , tmp);
+    strcat(basePath , BASE_PATH);
+    strcat(basePath , track->internalname);
+    strcat(basePath , "/");
+    strcat(basePath , car->_carName);  
+    cout << " basePath : " << basePath << endl;
+  }
+  
   mass = CARMASS + car->_fuel;
   stuckTime = 0.0;
   mode = START;
@@ -82,6 +101,8 @@ double  carData::initCW()
     return 0.645*cx*frontarea;
 }
 
+/* init methods filterTCL and getAccel. */
+
 void carData::initTrainType()
 {
     const char *traintype = GfParmGetStr(car->_carHandle, SECT_DRIVETRAIN, PRM_TYPE, VAL_TRANS_RWD);
@@ -130,19 +151,6 @@ double carData::getAccel_4WD(double speed){
     return speed / (car->_wheelRadius(REAR_RGT) + car->_wheelRadius(FRNT_RGT)) * 2.0 * 
 	   car->_gearRatio[car->_gear + car->_gearOffset] / car->_enginerpmRedLine;   
 }
-
-double carData::getBrake(double brake){
-  if(maxSpeed == CAR_MAX_DEFAULT_SPEED)
-    return brake;
-  
-  double weight = getMass()*G;
-  double maxForce = weight + CA*maxSpeed*maxSpeed;
-  double force = weight + CA*speedSqr;
-  return brake*MIN(1.0, force/maxForce);  
-}
-
-
-
 
 
 

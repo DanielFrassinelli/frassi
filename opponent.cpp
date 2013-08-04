@@ -32,7 +32,7 @@ void opponent::init(tCarElt *car , tTrack *track){
 
 void opponent::computeStatus(carData *myCar){
   
-  //TODO there we compute if the cars are going to collide and we set the structure state
+  //TODO there we compute if the cars are going to collide and we set the structure status
 
   status *tmp = &state[myCar->getCarIndex()]; 
   tmp->state = oppIgnore;
@@ -90,8 +90,6 @@ void opponent::update(carData *myCar){
 
 }
 
-//TODO then we need a method that, given the graph of our driver, it computes the arcs with high probability of collision
-
 double opponent::getDistToSegStart(){   
     if (car->_trkPos.seg->type == TR_STR) {
         return car->_trkPos.toStart;
@@ -100,14 +98,13 @@ double opponent::getDistToSegStart(){
     }  
 }
 
-
 double opponent::getSpeed(){   
   v2d speed(car->_speed_X, car->_speed_Y);
   v2d dir(cos(trackAngle) , sin(trackAngle));
   return speed*dir;  
 }
 
-/*------------------------------------------------ opponents */
+/** ------------------------------------------------ opponents -------------------------------------------------------------- */
 
 opponent * opponents::cars;
 int opponents::cars_num = 0;
@@ -134,7 +131,7 @@ opponents::~opponents(){
 }
 
 void opponents::updateCars(carData *myCar , tSituation *s){  
-  if(lastUpdate != s->currentTime)
+  if(lastUpdate != s->currentTime)	//one time per robot call
   {
     for(int i=0; i < cars_num; i++)
       cars[i].update(myCar);

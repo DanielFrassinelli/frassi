@@ -45,14 +45,14 @@ class Driver{
     
     /** Controller varaibles */
     
-    static const double ACCEL_PI_KI;
-    static const double ACCEL_PI_KE;
+    static const double ACCEL_PI_KI;		// proportinal constant
+    static const double ACCEL_PI_KE;  		// integrative constant
     static const double ACCEL_INTEG_LIMIT;	// we have to limit the error because sometimes can be infinite
     static const double ACCEL_CONST_LIMIT;	// we have to limit the intergral because grows too much
     
-    static const double STEER_K_SOFT;
-    static const double STEER_K_SPEED;
-    static const double STEER_K_YAW;
+    static const double STEER_K_SOFT;		//carlike model and controller Ksoft
+    static const double STEER_K_SPEED;		//carlike model and controller Kspeed
+    static const double STEER_K_YAW;		//carlike model and controller Kyaw
     
     static const double GEAR_UP_SPEED_GAIN;
     static const double GEAR_DOWN_SPEED_GAIN;
@@ -63,18 +63,18 @@ class Driver{
     
     /** filter variables */
     
-    static const double FILTER_ACCEL_START;
-    static const double FILTER_ACCEL_START_MODE_SPEED;
-    static const double RECOVERY_YAW_RATE;
-    static const double RECOVERY_ACCEL_REDUCE;
+    static const double FILTER_ACCEL_START;			//Accel pedal at 0m/s
+    static const double FILTER_ACCEL_START_MODE_SPEED;		//speed needed for start mode
+    static const double RECOVERY_YAW_RATE;			//reduce the accel pedal when out of the track based on the yaw rate
+    static const double RECOVERY_ACCEL_REDUCE;			//reduce the accel pedal when out of the track
     
     static const double ABS_MIN_SPEED;
     static const double ABS_SLIP;
     
-    static const double RECOVERY_MAX_SPEED;
+    static const double RECOVERY_MAX_SPEED;			//Max speed when out of the track
     
     static const double TCL_SLIP;
-    static const double TCL_MINSPEED; 
+    static const double TCL_RANGE; 
 
     int stuck, index;
     double mass , time_difference , stuckangle , allowedSpeed , trajangle , trajdist;
@@ -88,6 +88,8 @@ class Driver{
     vector <opponent *> * enemyCars; 
     trajectoryPlanner *trajectory;
     
+    //data of the previous invocation of drive()
+    
     typedef struct {
       double speed_x;
       double trajangle;
@@ -100,16 +102,16 @@ class Driver{
     past_data last;
     
     /** checker */
-    
-    bool  isStuck();
-    bool  isRecovery();
+      
+    bool  isStuck();		//check if the car is stuck
+    bool  isRecovery();		//check if the car is out of the track
     
     /** controller */
 
-    double getAccel();
-    double getSteer();      
-    int    getGear();  
-    double getClutch();
+    double getAccel();		//obtain a value of accel [-1.0 ... 1.0]
+    double getSteer();         //obtain a value of steer [-1.0 ... 1.0]
+    int    getGear();  		//gear changing [1 - 6]
+    double getClutch();		//obtain clutch (experimental)
     
     /** opponent filters */
     

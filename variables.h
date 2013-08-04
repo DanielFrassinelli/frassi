@@ -60,10 +60,37 @@ typedef ListDigraph::NodeIt nodeIt; 		/* node iterator */
 typedef ListDigraph::OutArcIt outArcIt; 	/* outgoing arc iterator of a node */
 typedef ListDigraph::InArcIt inArcIt;  	 /* ingoing  arc iterator of a node */ 	
 typedef ListPath<ListDigraph>::ArcIt pathIt;	 /* arc iterator for the path */
-    
+
+
+/** the path are : 
+ *  
+ *  nodes     : 	myCar->getBasePath()/NODES_FILE
+ *  maneuvers : 	myCar->getBasePath()/MANEUVERS_FILE
+ *  links : 		myCar->getBasePath()/LINKS_FILE
+ *  log   : 		myCar->getBasePath()/log/
+ * 
+ *  where myCar->getBasePath() is $TORCS_BASE/BASE_PATH
+ * 
+ */ 
+
 /* root folder */
 
-#define BASE_PATH      			"/usr/src/torcs/torcs-1.3.4/src/drivers/frassi/data/"
+#define BASE_PATH      			"/src/drivers/frassi/data/"
+
+/* path used for logging tha path and track in gnuplot format */
+
+#define GNUPLOT_TARCK_LOGPATH  	 "/log/gnuplot_track.csv"
+#define GNUPLOT_PATH_LOGPATH		 "/log/gnuplot_path.csv"
+
+/* path used for logging track and car Data */
+
+#define MATLAB_TRACK_LOGPATH  		"/log/matlab_Track.csv"
+#define MATLAB_CAR_LOGPATH    		"/log/matlab_carData.csv"
+
+/* path used for logging car data */
+
+#define CAR_DATA_LOGPATH   		"/log/myCar.csv"
+#define CUSTOM_DATA_LOGPATH		"/log/custom.csv"
 
 /* file needed for load the graph */
 
@@ -71,13 +98,13 @@ typedef ListPath<ListDigraph>::ArcIt pathIt;	 /* arc iterator for the path */
 #define LINKS_FILE		  "/links.csv"
 #define MANEUVERS_FILE		  "/maneuvers.csv"
 
-/* column per file */
+/* columns per file */
 
 const int nodes_param = 7;
 const int links_param = 3;
 const int maneuvers_param = 8;
 
-/* XML pattern for private attributes */
+/** XML patterns for private attributes */
 
 #define FRASSI_PRIV "frassi private"
 

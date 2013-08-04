@@ -33,14 +33,11 @@ logger::logger(tTrack *track, tCarElt *car , carData *myCar, trajectoryPlanner *
 
   step = 0;
   
-  char	filePath[255];
-  
+  char filePath[255];
+    
   if(LOG_CAR_DATA)
   {
-  strcpy(filePath , BASE_PATH);
-  strcat(filePath , track->internalname);
-  strcat(filePath , "/");
-  strcat(filePath , car->_carName);
+  strcpy(filePath , myCar->getBasePath());  
   strcat(filePath , CAR_DATA_LOGPATH);
   
   carLogger.open(filePath);
@@ -62,10 +59,7 @@ logger::logger(tTrack *track, tCarElt *car , carData *myCar, trajectoryPlanner *
   
   if(LOG_CUSTOM_DATA)
   {
-  strcpy(filePath , BASE_PATH);
-  strcat(filePath , track->internalname);
-  strcat(filePath , "/");
-  strcat(filePath , car->_carName);
+  strcpy(filePath , myCar->getBasePath());     
   strcat(filePath , CUSTOM_DATA_LOGPATH);
   
   customLogger.open(filePath);
@@ -155,7 +149,7 @@ void logger::logCarData(tSituation *s){
   lastTime  = s->currentTime;
   
   carLogger << s->currentTime << " \t " << car->_pos_X << " \t " << car->_pos_Y;
-  /* with this you can plot the trajectory / velocity  */  
+  /* with this you can plot the trajectory / position  */  
   
   carLogger << " \t " << car->_speed_x << " \t " << car->_gear << " \t " << accel; 
   /* with this data you can recover max_speed , accel , decel */
@@ -168,11 +162,7 @@ void logger::logCarData(tSituation *s){
 void logger::logGnuplotTrack(){
   
   char filePath[255];
-  
-  strcpy(filePath , BASE_PATH);
-  strcat(filePath , track->internalname);
-  strcat(filePath , "/");
-  strcat(filePath , car->_carName);
+  strcpy(filePath , myCar->getBasePath()); 
   strcat(filePath , GNUPLOT_TARCK_LOGPATH);
   
   ofstream trackLogger(filePath);
@@ -259,11 +249,7 @@ void logger::logGnuplotTrack(){
 void logger::logGnuplotPath(){
 
   char filePath[255];
-  
-  strcpy(filePath , BASE_PATH);
-  strcat(filePath , track->internalname);
-  strcat(filePath , "/");
-  strcat(filePath , car->_carName);
+  strcpy(filePath , myCar->getBasePath()); 
   strcat(filePath , GNUPLOT_PATH_LOGPATH);
   
   pathLogger.open(filePath);
@@ -289,11 +275,7 @@ void logger::logGnuplotPath(){
 void logger::logMatlabData(){
   
   char filePath[255];
-  
-  strcpy(filePath , BASE_PATH);
-  strcat(filePath , track->internalname);
-  strcat(filePath , "/");
-  strcat(filePath , car->_carName);
+  strcpy(filePath , myCar->getBasePath()); 
   strcat(filePath , MATLAB_TRACK_LOGPATH);
   
   ofstream matlabLogger(filePath); 
@@ -387,10 +369,7 @@ void logger::logMatlabData(){
   
   matlabLogger.close();
  
-  strcpy(filePath , BASE_PATH);
-  strcat(filePath , track->internalname);
-  strcat(filePath , "/");
-  strcat(filePath , car->_carName);
+  strcpy(filePath , myCar->getBasePath()); 
   strcat(filePath , MATLAB_CAR_LOGPATH);
   
   matlabLogger.open(filePath); 
@@ -415,7 +394,7 @@ void logger::logMatlabData(){
   const double maxSpeed = 	myCar->getMaxSpeed();
   
   matlabLogger << "\n-------------------------------------------------------------" << endl;
-  matlabLogger << "Track data : width -> " << width - car->_dimension_y - 0.5 << " , mu -> " << mu << endl;
+  matlabLogger << "Track data : width -> " << width - car->_dimension_y * 2 << " , mu -> " << mu << endl;
   matlabLogger << "0 -> straight , 1 -> curve "<< endl;  
   matlabLogger << "\n-------------------------------------------------------------" << endl;
   matlabLogger << "Car data " << endl;

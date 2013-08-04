@@ -30,17 +30,17 @@ const double trajectoryPlanner::RECOMPUTE_TIME = 5.00; /* 5 seconds */
 
 trajectoryPlanner::trajectoryPlanner(tCarElt *mycar , carData *myCarData ,  tTrack* mytrack) 
 : arcDist(graph , FLT_MAX), arcDistBackUp(graph), arcData(graph), nodeData(graph), nodeDist(graph , FLT_MAX) , dijkstra(graph , arcDist) , arcLookup(graph) 
-
 {
   this->track = mytrack;
   this->car = mycar;
   this->myCar = myCarData;
 
   initTrajectory();
-
 }
 
 trajectoryPlanner::~trajectoryPlanner(){}
+
+/** this method decide which trajectory we want to follow */
 
 void trajectoryPlanner::initTrajectory(){
 
@@ -76,7 +76,7 @@ void trajectoryPlanner::computeDefaultTrajectory(vector <opponent *> * enemyCars
   NORM_PI_PI(stuckangle);
 
   allowedSpeed = getDefaultSpeed();
-
+  
 }
 
 void trajectoryPlanner::computeOptimalTrajectory(vector <opponent *> * enemyCars){
@@ -88,7 +88,7 @@ void trajectoryPlanner::computeOptimalTrajectory(vector <opponent *> * enemyCars
   * restore the default arcmap
   */
 
-  findPosition();
+  findPosition();	//set manIndex and pathIndex to the current maneuver
 
   distance = traj[manIndex].getDistance(car);
 
@@ -97,27 +97,28 @@ void trajectoryPlanner::computeOptimalTrajectory(vector <opponent *> * enemyCars
   stuckangle = (tangentAngle - car->_yaw);
   NORM_PI_PI(stuckangle);
   
+  //TODO matlab speed is very low
+  
   allowedSpeed = getOptimalSpeed();
 
-  checkPath();	/* this is used to decide is we need to recompute the path*/
+  checkPath();	/* this is used to decide is we need to recompute the path */
 
   if(recomputePath)	// if I have to recompute the path 
   {  
     computeOptimalPath(findNearestNode());
     recomputePath = false;
     recomputeTime = RECOMPUTE_TIME;
-    
-    //TODO better do nothing?
     findPosition();
     distance = traj[manIndex].getDistance(car);
     angle = traj[manIndex].getAngle(car);
-    allowedSpeed = getOptimalSpeed();
-    
+    allowedSpeed = getOptimalSpeed();  
   }
   else
     recomputeTime = MAX(0.0 , recomputeTime - RCM_MAX_DT_ROBOTS);
 
 }
+
+/** we check if we need to brake in the near future, if yes we use a lower speed */
 
 double trajectoryPlanner::getDefaultSpeed(){   
   tTrackSeg *seg = car->_trkPos.seg->next; 
@@ -152,26 +153,30 @@ double trajectoryPlanner::getOptimalSpeed(){
   int i = pathIndex;
   int j = manIndex;
   maneuver *man = getManeuver(i,j);
+  double speed = man->getAllowedSpeed(myCar);
 
-  if(car->_speed_x > man->getSpeed())	/* I am too fast here and now */
-    return man->getSpeed();
+  if(car->_speed_x > speed)	/* I am too fast here and now */
+    return speed;
   
-  while(lookaheaddist < maxlookaheaddist)	/* look if I have to brake in the near future */
+  while(lookaheaddist < maxlookaheaddist)	/* if I have to brake in the near future */
     {
       incManeuver(i , j);
       man = getManeuver(i,j);
-      if(man->getSpeed() < car->_speed_x)
+      double newSpeed = man->getAllowedSpeed(myCar);
+      if(newSpeed < car->_speed_x)
 	{
 	double brake_dist = -log((c + man->getSpeedSqr()*d)/(c + myCar->getSpeedSqr()*d))/(2.0*d);		
 	if(brake_dist > lookaheaddist)
-	  return man->getSpeed();	/* use the lower speed */
+	  return newSpeed;	/* use the lower speed */
 	}
       lookaheaddist += man->getLength();
     }
     
-  return getManeuver(pathIndex , manIndex)->getSpeed();	/* keep the current speed */
+  return speed;	/* keep the current speed */
   
 }
+
+/** utility */
 
 double trajectoryPlanner::getAllowedSpeed(tTrackSeg* seg){
   double mu = seg->surface->kFriction;
@@ -188,17 +193,15 @@ double trajectoryPlanner::distToSegEnd(){
     return (car->_trkPos.seg->arc - car->_trkPos.toStart)*car->_trkPos.seg->radius;  
 }
 
+/** init graph */
+
 bool trajectoryPlanner::loadNodes(){
 
-  if(countNodes(graph) > 0)	/* the graph is static, so the other drivers doesn't need to compute it again */
+  if(countNodes(graph) > 0)	/* the graph is static, so the other drivers don't need to compute it again */
     return true;
-  
-  char nodesFilePath[255];	/* the path are written in variables.h */
-
-  strcpy(nodesFilePath , BASE_PATH);
-  strcat(nodesFilePath , track->internalname);
-  strcat(nodesFilePath , "/");
-  strcat(nodesFilePath , car->_carName);
+  	
+  char nodesFilePath[255];
+  strcpy(nodesFilePath , myCar->getBasePath());
   strcat(nodesFilePath , NODES_FILE);
 
   ifstream input(nodesFilePath);
@@ -293,15 +296,12 @@ bool trajectoryPlanner::loadNodes(){
 }
 
 bool trajectoryPlanner::loadLinks(){
-  
-  char linksFilePath[255];
+
   string line , temp;
   int src = 0 , dst = 0;
   
-  strcpy(linksFilePath , BASE_PATH);
-  strcat(linksFilePath , track->internalname);
-  strcat(linksFilePath , "/");
-  strcat(linksFilePath , car->_carName);
+  char linksFilePath[255];
+  strcpy(linksFilePath , myCar->getBasePath());
   strcat(linksFilePath , LINKS_FILE);
   
   ifstream input(linksFilePath);
@@ -355,7 +355,6 @@ bool trajectoryPlanner::loadLinks(){
 
 bool trajectoryPlanner::loadManeuvers(){
   
-  char manFilePath[255];
   string line, temp;
   int src , dst , currentSector = 0;
   double speed = 0.0 , time = 0.0 , radius = 0.0 , dist = 0.0 , cx = 0.0 , cy = 0.0;
@@ -363,10 +362,8 @@ bool trajectoryPlanner::loadManeuvers(){
   double baseY = (track->seg->vertex[TR_SL].y + track->seg->vertex[TR_SR].y)/2;
   double baseX = (track->seg->vertex[TR_SL].x + track->seg->vertex[TR_SR].x)/2; 
   
-  strcpy(manFilePath , BASE_PATH);
-  strcat(manFilePath , track->internalname);
-  strcat(manFilePath , "/");
-  strcat(manFilePath , car->_carName);
+  char manFilePath[255];
+  strcpy(manFilePath , myCar->getBasePath());	    
   strcat(manFilePath , MANEUVERS_FILE);
   
   ifstream input(manFilePath);
@@ -397,9 +394,7 @@ bool trajectoryPlanner::loadManeuvers(){
       node tmp = graph.nodeFromId(i);
       nodeData[tmp].angle = lastAngle;   
     }
-  
-  int cou = 0;
-    
+
   while (input) 
       {	
        getline(input , line);
@@ -429,8 +424,6 @@ bool trajectoryPlanner::loadManeuvers(){
 	  }	  
 	}
 
-	cou ++;
-
 	if(time == 0.0)	 /* the first maneuver is useless */
 	  continue;
 	
@@ -439,13 +432,18 @@ bool trajectoryPlanner::loadManeuvers(){
 	
 	currentArc = arcLookup(s , d);
 	
+	/** we add the time of the maneuver to the weight of the arc */
+	
 	if(arcDist[currentArc] == FLT_MAX)
 	  arcDist[currentArc] = 0;
 	
 	arcDist[currentArc] += time;
 
-
-	if(currentSector != nodeData[s].sector)	// with this method we update all the angle of the new sector with the final angle of the previus 
+	/** when the new node is in the next sector
+	 *  we update the angle of all the nodes of the next sector with the last angle of the previus sector 
+	 */
+		
+	if(currentSector != nodeData[s].sector)
 	{
 	  start = firstIndexOfSector(currentSector);	// first node of the first sector 
 	  currentSector = (currentSector + 1) % sectors;	// new sector 
@@ -527,7 +525,6 @@ double trajectoryPlanner::distFromSegStart(const v2d point, const tTrackSeg *seg
 
 }
 
-
 bool trajectoryPlanner::isInsideSeg(const v2d point , const tTrackSeg *seg){  
   v2d P1(seg->vertex[TR_SL].x, seg->vertex[TR_SL].y);
   v2d P2(seg->vertex[TR_SR].x, seg->vertex[TR_SR].y);
@@ -561,7 +558,6 @@ bool trajectoryPlanner::isInsideSeg(const v2d point , const tTrackSeg *seg){
   return false;    
 }
    
-
 bool trajectoryPlanner::initGraph(){
   
   if(!loadNodes())
@@ -575,7 +571,7 @@ bool trajectoryPlanner::initGraph(){
 
   graphExpansion();
   
-  dijkstra.distMap(nodeDist); //set the map that given a node return the distance computed by dijkstra
+  dijkstra.distMap(nodeDist); 
     
   computeOptimalPath(initNearestNode());
 
@@ -602,9 +598,7 @@ bool trajectoryPlanner::initGraph(){
 }
 
 void trajectoryPlanner::graphExpansion(){
-    
-  //TODO graph copy?
-  
+
   int start = firstIndexOfSector(graph.nodeFromId(countNodes(graph) - 1));	/*last sector */
   int end   = start + nodePerSector;
   int instart = firstIndexOfSector(0);				/* first sector */
@@ -690,12 +684,12 @@ ListDigraph::Node trajectoryPlanner::findNearestNode(){
 }
 
 void trajectoryPlanner::computeOptimalPath(node src){
-
+  
   if(!path.empty())
-    if(myCar->getMode() == STUCK || src == graph.source(path.nth(pathIndex))) //if I'm stuck or the src node is the same of the path 
+    if(myCar->stuckMode() || src == graph.source(path.nth(pathIndex))) //if I'm stuck or the src node is the same of the path 
       return;
 
-  // I create a fake node to make possibile to have the src node as the dst node   
+  // We need a fake src node (in this way we can have the src node as the dst node)   
     
   node fake = graph.addNode();
   arc x     = graph.addArc(fake, src);
@@ -831,7 +825,7 @@ void trajectoryPlanner::findPosition(){
 	pathIndex = incPathIndex(pathIndex);
   }while(!found && pathIndex != p);
   
-  //TODO it's possibile to not find maneuver ?
+  //TODO it's possibile to not find a maneuver ?
   
   if(!found)
   {
@@ -986,9 +980,7 @@ maneuver::maneuver(v2d start, carData *myCar , double dist , double radius, doub
     }
 
   }
-  
-  //TODO beta version
-  
+
   this->startSeg = startSeg; 
   tTrackSeg *seg = startSeg;
   
@@ -1074,10 +1066,31 @@ inline double maneuver::angleFromStart(tCarElt *car){
   return acos((carPos * tmp)/ (carPos.len() * tmp.len())); 
 }
 
-bool maneuver::isInside(tCarElt *car){
-    
-  //TODO maybe works
+double maneuver::getAllowedSpeed(carData *myCar){
   
+  return speed;
+  
+  /*tTrackSeg *seg = myCar->getCarPnt()->_trkPos.seg;
+  double mu = seg->surface->kFriction;
+  
+  //TODO wrong, don't use this speed... (experimental)
+  
+  if(type == curveR && myCar->getCarPnt()->_trkPos.toLeft/seg->width < 0.25)
+    return speed;
+  
+  if(type == curveL && myCar->getCarPnt()->_trkPos.toRight/seg->width < 0.25)
+    return speed;
+  
+  if(type == line)
+    return speed;
+  else
+    return MIN(myCar->getMaxSpeed() , sqrt((mu*G*radius)/(1.0 - MIN(1.0, radius*myCar->getCA()*mu/(myCar->getMass())))));
+
+  */
+}
+
+bool maneuver::isInside(tCarElt *car){
+
   int cid = car->_trkPos.seg->id;
   int sid = startSeg->id;
   int did = endSeg->id;
@@ -1115,7 +1128,7 @@ double maneuver::distToEnd(tCarElt *car){
   if(type == line)
   {
     v2d carPos(car->_pos_X , car->_pos_Y);
-    return carPos.dist(endPoint);   
+    return carPos.dist(endPoint);   //TODO wrong
   }
   else
   {

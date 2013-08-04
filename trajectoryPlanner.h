@@ -23,12 +23,20 @@
 
 class trajectoryPlanner;
 
+/** a manuever is described by:
+ *  - curve with radius R or a straight
+ *  - start and final position/angle
+ *  - allowed speed
+ */
+
 class maneuver {
 
   public:
     
     maneuver(v2d start, carData *myCar ,double dist , double radius, double angle , double speed , 
 	     double cx , double cy, tTrackSeg *startSeg, tTrackSeg *endSeg, trajectoryPlanner *traj);
+    
+    /** getter */
     
     inline int getType()       	{ return type; }
     inline double getLength()   	{ return length; }
@@ -45,10 +53,11 @@ class maneuver {
     
     double getDistance(tCarElt *car);
     double getAngle(tCarElt *car);
+    double getAllowedSpeed(carData *myCar);
     double distToEnd(tCarElt *car);
     bool isInside(tCarElt *car);
 
-    /* log methods */
+    /** log methods */
     
     void logManeuver(ofstream &log);
 
@@ -64,16 +73,53 @@ class maneuver {
 
 };
 
+/** this class works in this way:
+ *  
+ *  during the init we try to load the graph. If we fail we set the computeTrajectory method to the default function else we use the optimal
+ *  function.
+ *  we load the graph in this way
+ *  1 - we load all the nodes from the nodes file
+ *  2 - we load all the links form the links file
+ *  3 - we load all the manuever in this way :
+ * 	3.1 - given a manuever we find the arc where the maneuver is
+ * 	3.2 - we find the last known position and angle of the car in this arc (the final point of the last maneuver)
+ * 	3.3 - we compute the position of the car at the end of the manuver
+ * 	3.4 - we add the manuever to the arc
+ *  4 - we find the nearest node and we compute the first Disjktra
+ * 
+ *  during the execution we work in this way :
+ *  	1 - we find the current arc/maneuver based on the position of the car
+ *  	2 - we recompute (if needed) the path
+ *	3 - we compute trajectory angle, speed, distance
+ * 
+ *  the graph works in this way
+ *  we use two maps for the nodes
+ * 	- the first is used to store the data of the node
+ * 	- the second is used by Dijkstra and contains the cost to go to that node from the src node
+ * 
+ *  Arcs are mapped in this way
+ * 	- a map that store the weight (that is the sum of the time of all the maneuver of the arc)
+ * 	- a map that store a vector of class maneuver
+ * 
+ *  For the path we use a structure that is returned by Disjktra (directed path) (it simply stores all the arc from the src to dst)
+ * 
+ */
+
 class trajectoryPlanner{
   
   public:
 
     trajectoryPlanner(tCarElt *mycar , carData *myCarData ,  tTrack *mytrack);
     ~trajectoryPlanner();
+    
+    /** utiliy methods */
    
     double distToSegEnd();
     double getAllowedSpeed(tTrackSeg* seg);
-        
+    
+    // COMPUTE_TRAJECTORY point at the method used for computing the trajectory 
+    // computeTrajectory(..) is only a shortcut to call the method pointed by COMPUTE_TRAJECTORY
+    
     void (trajectoryPlanner::*COMPUTE_TRAJECTORY)(vector <opponent *> *);
     inline void computeTrajectory(vector <opponent *> * enemyCars){ (this->*COMPUTE_TRAJECTORY)(enemyCars);}
     
@@ -81,19 +127,20 @@ class trajectoryPlanner{
     inline double getTrajectoryStuck() 	{ return stuckangle; }
     inline double getTrajectorySpeed() 	{ return allowedSpeed; }
     inline double getTrajectoryDistance() 	{ return distance; }
-    inline int    getTrajectoryType()  	{ return trajType; }
+    inline bool   isTrajectoryOptimal()  	{ return trajType == optimalTraj; }
+    inline maneuver * getCurrentManeuver()	{ return &arcData[path.nth(pathIndex)][manIndex]; }
 
-    bool isInsideSeg(const v2d point , const tTrackSeg *seg);
-    double distFromSegStart(const v2d point , const tTrackSeg *seg);
+    bool isInsideSeg(const v2d point , const tTrackSeg *seg); //true if a point is inside a seg 
+    double distFromSegStart(const v2d point , const tTrackSeg *seg); //TODO doesn't work (not sure)
       
-    /* log methods */
+    /** log methods */
     
     void logPath(ofstream &log);
     
   private:
     
-    static const double PATH_MAX_DIST;		/* max distance related to the track width from the trajectory */
-    static const double PATH_MAX_STEER;	/* max steering related to the max steering of the car */
+    static const double PATH_MAX_DIST;		
+    static const double PATH_MAX_STEER;	
     static const double RECOMPUTE_TIME;	/* time that have to pass between two Dijktra recomputation */
     
     static int sectors;		/* number of sectors of the graph */			  
@@ -128,7 +175,7 @@ class trajectoryPlanner{
     static ListDigraph graph;   		   	/* directed graph , shared between all the drivers */
     arcDistMap arcDist;    		          	/* Map that stores the weight of the arcs */
     arcDistMap arcDistBackUp;			   	/* Map that stores the backUp weight of the arc */	
-    arcDataMap arcData;				  	/* Map that stores a vector of maneuvers for the arcs */
+    arcDataMap arcData;				  	/* Map that stores a vector of maneuvers for each arcs */
     nodeDataMap nodeData;     			   	/* Map that stores attributes for nodes */
     nodeDistMap nodeDist;			  	/* Map that stores the cost to go to that node, return after the execution of Dijkstra */
     ListPath <ListDigraph> path;		   	/* Path to follow , returned by dijkstra. Contains a list of arcs */
@@ -137,10 +184,10 @@ class trajectoryPlanner{
      
     int pathIndex;                              	/* index of the current arc , maneuver */
     int manIndex;
-    int trajLength;
-    vector <maneuver> traj;			   	/*Pointer to the current vector of maneuvers to follow */
+    int trajLength;					/* number of maneuvers that compose our path */
+    vector <maneuver> traj;			   	/* Pointer to the current vector of maneuvers to follow */
     
-    /* utils methods */
+    /** utility */
     
     inline int firstIndexOfSector(const node src) { return nodeData[src].sector*nodePerSector; }
     inline int firstIndexOfSector(const int src) {  return src*nodePerSector; } 
@@ -156,16 +203,16 @@ class trajectoryPlanner{
     
     inline bool isBetween(double p , double s , double f) { return (f > s) ? (p > s && p < f) : (p < s && p > f); }
     
-    /* used during execution */
+    /** optimal methods */
     
-    void computeOptimalTrajectory(vector <opponent *> * enemyCars);	/* called by the driver */	
+    void computeOptimalTrajectory(vector <opponent *> * enemyCars);	/* pointed by COMPUTE_TRAJECTORY */	
     double getOptimalSpeed();						/* compute the allowedSpeed */
     void checkPath();
     void findPosition();
     void computeOptimalPath(node src);
     ListDigraph::Node findNearestNode();
   
-    /* initialisation mathods */
+    /** initialisation mathods */
     
     void initTrajectory();	/* load the trajectory following method */
     
@@ -176,7 +223,7 @@ class trajectoryPlanner{
     void graphExpansion();	/* extend the graph so we can plan more than one lap */
     ListDigraph::Node initNearestNode();	/* find the nearest node */
 
-    /*default methods for following the raceline , used if initGrap return false */
+    /** default methods for following the raceline , used if initGraph return false */
     
     void computeDefaultTrajectory(vector <opponent *> * enemyCars);
     double getDefaultSpeed(); 

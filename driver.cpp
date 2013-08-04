@@ -56,8 +56,8 @@ const double Driver::RECOVERY_ACCEL_REDUCE = 0.065;
 
 const double Driver::RECOVERY_MAX_SPEED = 20.0;
 
-const double Driver::TCL_SLIP = 0.9;        
-const double Driver::TCL_MINSPEED = 3.0;  
+const double Driver::TCL_SLIP = 2.0;        
+const double Driver::TCL_RANGE = 5.0;  
 
 const double Driver::ABS_MIN_SPEED = 5.0;
 const double Driver::ABS_SLIP      = 0.9;
@@ -115,6 +115,7 @@ void Driver::initTrack(int index, tTrack* track, void *carHandle, void **carParm
     cout << "loading default XML " << endl;
   else
     cout << "loading XML:" << buffer << endl;
+  
 }
 
 void Driver::endrace(int index, tSituation *s){
@@ -128,7 +129,7 @@ int Driver::pitCommand(tCarElt* car, tSituation *s){
 void Driver::newrace(int index, tCarElt* car, tSituation *s){
   
  this->car = car;
- myCar = new carData(car);
+ myCar = new carData(car, track);
  trajectory = new trajectoryPlanner(car , myCar , track);
  allCars = new opponents(s , track);
  log = new logger(track, car , myCar , trajectory);
@@ -155,7 +156,7 @@ void Driver::drive(int index, tSituation *s){
       
       if(accel < 0.0)
       {
-	car->ctrl.brakeCmd = filterBrake(myCar->getBrake(fabs(accel)));
+	car->ctrl.brakeCmd = filterBrake(fabs(accel));
 	car->ctrl.accelCmd = 0.0;
       }
       else
@@ -173,7 +174,7 @@ void Driver::drive(int index, tSituation *s){
   
 }
 
-//TODO these check are basilar
+//TODO stupid check
 
 /** check section */
 
@@ -198,23 +199,23 @@ bool Driver::isRecovery(){
     return false;  
 }
 
-/** update section */
+/** update section, there we update all the data of the trajectory, driver, opponents */
 
 void Driver::initialUpdate(tSituation* s){
 
-  myCar->updateCar(s);
+  myCar->updateCar(s);	//update the car of this driver
 
-  allCars->updateCars(myCar,s);
-  allCars->computeStatus(myCar);
-  enemyCars = allCars->getEnemyCarsPnt(myCar);
+  allCars->updateCars(myCar,s);		//update all the opponent 
+  allCars->computeStatus(myCar);		//update the status between this driver and all the opponents
+  enemyCars = allCars->getEnemyCarsPnt(myCar);	//return a vector of pointer to all the opponent that we don't want to ignore
 
-  trajectory->computeTrajectory(enemyCars);
+  trajectory->computeTrajectory(enemyCars);	//compute the trajectory for this driver
   
   stuckangle   = trajectory->getTrajectoryStuck();
   trajangle    = trajectory->getTrajectoryAngle();
   trajdist     = trajectory->getTrajectoryDistance();   
   allowedSpeed = filterSpeed(trajectory->getTrajectorySpeed());
-
+  
   time_difference = s->deltaTime;
   
   gearTime = MAX(0.0 , gearTime - RCM_MAX_DT_ROBOTS);
@@ -235,10 +236,11 @@ void Driver::initialUpdate(tSituation* s){
     return;    
   } 
   
-  if(car->_gear <= 1 && (car->_speed_x < FILTER_ACCEL_START_MODE_SPEED || myCar->recoveryMode()))
+  //if(car->_gear <= 1 && (car->_speed_x < FILTER_ACCEL_START_MODE_SPEED || myCar->recoveryMode()))
+  if(s->currentTime < 10.0 && car->_gear <= 1)
     myCar->setMode(START);
   else 
-    if(car->_gear > 1 || (myCar->recoveryMode() && car->_speed_x >= 5.0))
+    //if(car->_gear > 1 || (myCar->recoveryMode() && car->_speed_x >= 5.0))
       myCar->setMode(NORMAL);
     
 }
@@ -249,11 +251,11 @@ void Driver::finalUpdate(tSituation *s){
   last.trajangle = trajangle;
   last.carYaw = car->_yaw;
   
-  log->log(s);
+  log->log(s);	// log the data
 
 }
 
-/** Controller section */
+/** Controller section, there we compute accel/brake, steer, gear and clutch */
 
 int Driver::getGear(){
   if(gearTime > 0.0)
@@ -313,6 +315,7 @@ double Driver::getSteer(){
 }
 
 double Driver::getClutch(){
+
   if (car->_gear > 1) {
     clutchTime = 0.0;
     return 0.0;
@@ -361,13 +364,21 @@ double Driver::filterSteerOpp(double steer){
   return steer;
 }
 
-/** Filter section */
+/** Filter section we change we value of the values computed by the controller section with the aim of improving performance */
 
 double Driver::filterBrake(double brake){
   
   if(myCar->recoveryMode())
     brake =  1.0;
-
+  
+  if(myCar->getMaxSpeed() != myCar->CAR_MAX_DEFAULT_SPEED)
+  {  
+  double weight = myCar->getMass()*G;
+  double maxForce = weight + myCar->getCA()*myCar->getMaxSpeed()*myCar->getMaxSpeed();
+  double force = weight + myCar->getCA()*myCar->getSpeedSqr();
+  brake = brake*MIN(1.0, force/maxForce); 
+  }
+  
   if(car->_speed_x < ABS_MIN_SPEED)
     return brake;
  
@@ -395,20 +406,25 @@ double Driver::filterAccel(double accel){
     
     if(myCar->recoveryMode())
       accel = accel/(fabs(car->_yaw_rate)*RECOVERY_YAW_RATE) - RECOVERY_ACCEL_REDUCE;
-    
-    if (car->_speed_x < TCL_MINSPEED || car->_gear <= 1)
+
+    if (car->_gear <= 1)
       return accel;
 
-    double slip = car->_speed_x/(myCar->getDrivenWheelSpeed());
-
-    if (slip < TCL_SLIP) {
-        accel = 0.0;
-    }
+    double slip = car->_speed_x - myCar->getDrivenWheelSpeed();
+    
+    if (slip > TCL_SLIP)
+      accel = accel - MIN(accel, (slip - TCL_SLIP)/TCL_RANGE);
+    
     return accel;
 }
 
-double Driver::filterSteer(double steer){ 
+double Driver::filterSteer(double steer){
+  
+  if(myCar->recoveryMode())
+    return steer;
+
   return steer;
+  
 }
   
 double Driver::filterSpeed(double speed){

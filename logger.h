@@ -22,22 +22,6 @@
 #include "trajectoryPlanner.h"
 #include "carData.h"
 
-/* path used for logging tha path and track in gnuplot format */
-
-#define GNUPLOT_TARCK_LOGPATH  	 "/log/gnuplot_track.csv"
-#define GNUPLOT_PATH_LOGPATH		 "/log/gnuplot_path.csv"
-
-/* path used for logging track and car Data */
-
-#define MATLAB_TRACK_LOGPATH  		"/log/matlab_Track.csv"
-#define MATLAB_CAR_LOGPATH    		"/log/matlab_carData.csv"
-
-/* path used for logging car data */
-
-#define CAR_DATA_LOGPATH   		"/log/myCar.csv"
-#define CUSTOM_DATA_LOGPATH		"/log/custom.csv"
-
-
 class logger {
 
   public:
@@ -54,7 +38,6 @@ class logger {
     
     void log(tSituation *s);
 
-    
   private:
     
     tTrack *track;
