@@ -18,10 +18,10 @@
 #include "logger.h"
 
 const bool logger::LOG_MATLAB_DATA 	= false;		
-const bool logger::LOG_CAR_DATA    	= true; 		
-const bool logger::LOG_TRACK_GNUPLOT	= false;
+const bool logger::LOG_CAR_DATA    	= false; 		
+const bool logger::LOG_TRACK_GNUPLOT	= true;
 const bool logger::LOG_PATH_GNUPLOT	= false;
-const bool logger::LOG_CUSTOM_DATA	= false;
+const bool logger::LOG_CUSTOM_DATA	= true;
 const int  logger::LOG_STEP		= 1;
 
 logger::logger(tTrack *track, tCarElt *car , carData *myCar, trajectoryPlanner *trajectory){

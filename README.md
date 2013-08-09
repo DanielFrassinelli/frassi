@@ -13,12 +13,12 @@ Requirements (tested on ubuntu 11.04 +)
   - libxmu-dev
   - libxxf86vm-dev
   
-  if there is a problem linking musicplayer library, copy this file in the torcs source and patch it with < patch -p1 -i torcs-1.3.4-fixes.patch > .
+  if there is a problem linking musicplayer library (during make), copy this file in the torcs source and patch it with < patch -p1 -i torcs-1.3.4-fixes.patch > .
 
   link : http://sourceforge.net/mailarchive/attachment.php?list_name=torcs-users&message_id=4789A1A7-4FEE-4DF8-AD32-3F1C9D080FC9%40web.de&counter=1
 
 - install torcs 1.3.4+ < http://torcs.sourceforge.net/ > 
-  using this guide :   < http://www.berniw.org/tutorials/robot/tutorial.html > (mandatory)
+  using this guide :   < http://www.berniw.org/tutorials/robot/tutorial.html > (mandatory) (check the environments)
 
 - lemon graph library 1.2.3+ < http://lemon.cs.elte.hu/trac/lemon > (mandatory)
 

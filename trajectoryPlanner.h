@@ -77,7 +77,7 @@ class maneuver {
  *  
  *  during the init we try to load the graph. If we fail we set the computeTrajectory method to the default function else we use the optimal
  *  function.
- *  we load the graph in this way
+ *  the graph is loaded in this way
  *  1 - we load all the nodes from the nodes file
  *  2 - we load all the links form the links file
  *  3 - we load all the manuever in this way :
@@ -87,7 +87,7 @@ class maneuver {
  * 	3.4 - we add the manuever to the arc
  *  4 - we find the nearest node and we compute the first Disjktra
  * 
- *  during the execution we work in this way :
+ *  during the execution :
  *  	1 - we find the current arc/maneuver based on the position of the car
  *  	2 - we recompute (if needed) the path
  *	3 - we compute trajectory angle, speed, distance
@@ -135,7 +135,7 @@ class trajectoryPlanner{
       
     /** log methods */
     
-    void logPath(ofstream &log);
+    void logPath(ofstream &log);  //used by logger.cpp
     
   private:
     
@@ -212,7 +212,7 @@ class trajectoryPlanner{
     void computeOptimalPath(node src);
     ListDigraph::Node findNearestNode();
   
-    /** initialisation mathods */
+    /** initialization mathods */
     
     void initTrajectory();	/* load the trajectory following method */
     

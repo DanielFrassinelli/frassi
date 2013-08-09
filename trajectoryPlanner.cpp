@@ -40,7 +40,7 @@ trajectoryPlanner::trajectoryPlanner(tCarElt *mycar , carData *myCarData ,  tTra
 
 trajectoryPlanner::~trajectoryPlanner(){}
 
-/** this method decide which trajectory we want to follow */
+/** this method decides which trajectory we want to follow */
 
 void trajectoryPlanner::initTrajectory(){
 
